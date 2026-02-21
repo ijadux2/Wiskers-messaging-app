@@ -13,14 +13,39 @@ A browser-based messaging application with SQLite storage, featuring chats, grou
 
 ## Tech Stack
 
-- HTML5, CSS3, Vanilla JavaScript
+- Bun (runtime & build tool)
+- Vanilla JavaScript (ES Modules)
 - SQLite (sql.js) for local database
 - LocalStorage for data persistence
 
 ## Getting Started
 
-1. Open `index.html` in a browser
-2. The app initializes a local SQLite database automatically
+```bash
+# Install dependencies
+bun install
+
+# Run development server
+bun run dev
+
+# Or start the server
+bun run start
+```
+
+Then open http://localhost:3000 in your browser.
+
+## Project Structure
+
+```
+├── index.html          # Main HTML
+├── server.js           # Bun server entry point
+├── package.json        # Project config
+├── .env                # Configuration
+├── SPEC.md             # Project specification
+├── public/
+│   └── styles.css      # Styles
+└── src/
+    └── app.js          # Application logic
+```
 
 ## Configuration
 
@@ -40,15 +65,3 @@ Catppuccin Mocha color scheme applied throughout.
 ## Data Storage
 
 All data (messages, contacts, blogs, profile) is stored locally in the browser using SQLite. No backend required.
-
-## Files
-
-- `index.html` - Main application
-- `styles.css` - Styling
-- `app.js` - Application logic
-- `.env` - Configuration
-- `SPEC.md` - Project specification
-
-## for details see
-
-[spec](./SPEC.md)

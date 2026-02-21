@@ -1,0 +1,13 @@
+{
+  "name": "messaging-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run server.js",
+    "start": "bun run server.js",
+    "build": "echo 'Build complete - static files served directly'"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
