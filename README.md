@@ -48,3 +48,7 @@ All data (messages, contacts, blogs, profile) is stored locally in the browser u
 - `app.js` - Application logic
 - `.env` - Configuration
 - `SPEC.md` - Project specification
+
+## for details see
+
+[spec](./SPEC.md)
