@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whisker Chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Mobile Header -->
+        <header class="mobile-header">
+            <button class="menu-btn" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="app-logo">
+                <i class="fas fa-cat"></i>
+                <span>Whisker</span>
+            </div>
+            <button class="menu-btn" onclick="openModal('profileModal')">
+                <i class="fas fa-user"></i>
+            </button>
+        </header>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="user-profile-card" onclick="openModal('profileModal')">
+                    <div class="avatar-wrapper">
+                        <img src="https://api.dicebear.com/7.x/catppuccin/svg?seed=whisker" alt="Profile" class="avatar" id="userAvatar">
+                        <span class="online-indicator"></span>
+                    </div>
+                    <div class="user-info">
+                        <span class="username" id="userName">Your Name</span>
+                        <span class="status">Online</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="search-container">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search..." id="searchInput" oninput="handleSearch(this.value)">
+            </div>
+            
+            <nav class="tab-navigation">
+                <button class="tab-btn active" data-tab="chats" onclick="switchTab('chats')">
+                    <i class="fas fa-comments"></i>
+                    <span>Chats</span>
+                </button>
+                <button class="tab-btn" data-tab="groups" onclick="switchTab('groups')">
+                    <i class="fas fa-users"></i>
+                    <span>Groups</span>
+                </button>
+                <button class="tab-btn" data-tab="blogs" onclick="switchTab('blogs')">
+                    <i class="fas fa-book-open"></i>
+                    <span>Blogs</span>
+                </button>
+            </nav>
+            
+            <div class="contacts-list" id="contactsList"></div>
+            
+            <div class="sidebar-footer">
+                <button class="icon-btn" onclick="openModal('newChatModal')" title="New Chat">
+                    <i class="fas fa-plus-circle"></i>
+                </button>
+                <button class="icon-btn" onclick="openModal('settingsModal')" title="Settings">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content" id="mainContent">
+            <!-- Welcome Screen -->
+            <div class="welcome-screen" id="welcomeScreen">
+                <div class="welcome-animation">
+                    <i class="fas fa-cat"></i>
+                </div>
+                <h2>Welcome to Whisker</h2>
+                <p>Select a conversation or start a new one</p>
+            </div>
+
+            <!-- Blog View -->
+            <div class="blog-view" id="blogView" style="display: none;">
+                <div class="blog-header">
+                    <h2><i class="fas fa-feather-alt"></i> Blog Feed</h2>
+                    <button class="btn btn-primary" onclick="openModal('blogModal')">
+                        <i class="fas fa-plus"></i> Write
+                    </button>
+                </div>
+                <div class="blog-grid" id="blogGrid"></div>
+            </div>
+
+            <!-- Chat View -->
+            <div class="chat-view" id="chatView" style="display: none;">
+                <div class="chat-header" id="chatHeader">
+                    <div class="chat-header-info">
+                        <div class="avatar-wrapper">
+                            <img src="" alt="" class="avatar" id="chatAvatar">
+                        </div>
+                        <div class="chat-user-info">
+                            <span class="chat-name" id="chatName">Select a chat</span>
+                            <span class="chat-status" id="chatStatus">Start a conversation</span>
+                        </div>
+                    </div>
+                    <div class="chat-actions">
+                        <button class="icon-btn" onclick="toggleRightPanel()"><i class="fas fa-info-circle"></i></button>
+                    </div>
+                </div>
+                
+                <div class="messages-container" id="messagesContainer">
+                    <div class="messages-list" id="messagesList"></div>
+                </div>
+                
+                <div class="message-input-area" id="messageInputArea">
+                    <button class="icon-btn" onclick="toggleEmojiPicker()">
+                        <i class="fas fa-smile"></i>
+                    </button>
+                    <div class="emoji-picker" id="emojiPicker">
+                        <button onclick="insertEmoji('😺')">😺</button>
+                        <button onclick="insertEmoji('😸')">😸</button>
+                        <button onclick="insertEmoji('😹')">😹</button>
+                        <button onclick="insertEmoji('😻')">😻</button>
+                        <button onclick="insertEmoji('👍')">👍</button>
+                        <button onclick="insertEmoji('❤️')">❤️</button>
+                        <button onclick="insertEmoji('🎉')">🎉</button>
+                    </div>
+                    <button class="icon-btn" onclick="document.getElementById('fileInput').click()">
+                        <i class="fas fa-paperclip"></i>
+                    </button>
+                    <input type="file" id="fileInput" hidden accept="image/*">
+                    <input type="text" class="message-input" id="messageInput" placeholder="Type a message..." onkeypress="handleEnter(event)">
+                    <button class="send-btn" onclick="sendMessage()">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Right Panel -->
+        <aside class="right-panel" id="rightPanel">
+            <div class="panel-content" id="panelContent">
+                <div class="contact-info" id="contactInfo">
+                    <div class="info-header">
+                        <div class="avatar-wrapper large">
+                            <img src="" alt="" class="avatar" id="panelAvatar">
+                        </div>
+                        <h3 id="panelName">Contact Name</h3>
+                        <span class="status" id="panelStatus">Online</span>
+                    </div>
+                    <div class="info-details">
+                        <div class="detail-item">
+                            <i class="fas fa-key"></i>
+                            <span>Key</span>
+                            <code id="panelKey">WHISK-XXXX</code>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Joined</span>
+                            <span id="panelJoined">Jan 2024</span>
+                        </div>
+                    </div>
+                    <div class="info-actions">
+                        <button class="action-btn danger" onclick="clearCurrentChat()">
+                            <i class="fas fa-trash"></i> Clear Chat
+                        </button>
+                        <button class="action-btn danger" onclick="blockUser()">
+                            <i class="fas fa-user-slash"></i> Block
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+    
+    <!-- MODALS -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+        
+        <!-- PROFILE MODAL -->
+        <div class="modal profile-modal" id="profileModal">
+            <div class="modal-glow"></div>
+            <div class="modal-header profile-header">
+                <div class="profile-cover">
+                    <i class="fas fa-cat"></i>
+                </div>
+                <button class="close-btn" onclick="closeModal(null, 'profileModal')">&times;</button>
+            </div>
+            <div class="modal-body profile-body">
+                <div class="profile-avatar-section">
+                    <div class="profile-avatar-wrapper">
+                        <img src="https://api.dicebear.com/7.x/catppuccin/svg?seed=whisker" alt="" class="avatar xlarge" id="editAvatar">
+                        <label class="avatar-upload-btn">
+                            <i class="fas fa-camera"></i>
+                            <input type="file" id="avatarInput" accept="image/*" onchange="updateAvatar(event)">
+                        </label>
+                    </div>
+                    <h2 class="profile-name" id="editUsernameDisplay">Your Name</h2>
+                    <p class="profile-bio" id="editBioDisplay">Bio goes here</p>
+                </div>
+                <div class="profile-form">
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> Username</label>
+                        <input type="text" id="editUsername" placeholder="Your name">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-align-left"></i> Bio</label>
+                        <textarea id="editBio" placeholder="Tell us about yourself..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-key"></i> Connection Key</label>
+                        <div class="key-display">
+                            <code id="displayKey">WHISKER-XXXX-XXXX</code>
+                            <button class="icon-btn" onclick="copyKey()"><i class="fas fa-copy"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer profile-footer">
+                <button class="btn btn-secondary" onclick="closeModal(null, 'profileModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveProfile()"><i class="fas fa-save"></i> Save</button>
+            </div>
+        </div>
+        
+        <!-- NEW CHAT MODAL -->
+        <div class="modal chat-modal" id="newChatModal">
+            <div class="modal-header chat-header-modal">
+                <div class="chat-header-icon">
+                    <i class="fas fa-comment-dots"></i>
+                </div>
+                <h2>New Conversation</h2>
+                <button class="close-btn" onclick="closeModal(null, 'newChatModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="chat-modal-content">
+                    <div class="input-group">
+                        <label>Enter Connection Key</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-key"></i>
+                            <input type="text" id="newChatKey" placeholder="WHISKER-XXXX-XXXX">
+                        </div>
+                    </div>
+                    <div class="divider-text"><span>or</span></div>
+                    <div class="create-options">
+                        <button class="option-card" onclick="openModal('createGroupModal'); closeModal(null, 'newChatModal')">
+                            <div class="option-icon group">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="option-text">
+                                <h3>Create Group</h3>
+                                <p>Start a group chat</p>
+                            </div>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary btn-full" onclick="startNewChat()">
+                    <i class="fas fa-paper-plane"></i> Start Chat
+                </button>
+            </div>
+        </div>
+        
+        <!-- CREATE GROUP MODAL -->
+        <div class="modal group-modal" id="createGroupModal">
+            <div class="modal-header group-header">
+                <div class="group-header-bg">
+                    <i class="fas fa-users"></i>
+                </div>
+                <button class="close-btn" onclick="closeModal(null, 'createGroupModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="group-avatar-upload">
+                    <div class="avatar-circle">
+                        <img src="https://api.dicebear.com/7.x/catppuccin/svg?seed=group" alt="" class="avatar large" id="groupAvatar">
+                        <label class="avatar-edit-overlay">
+                            <i class="fas fa-camera"></i>
+                            <input type="file" id="groupAvatarInput" accept="image/*">
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-tag"></i> Group Name</label>
+                    <input type="text" id="groupName" placeholder="Enter group name">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-align-left"></i> Description</label>
+                    <textarea id="groupDesc" placeholder="What's this group about?"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal(null, 'createGroupModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="createGroup()">
+                    <i class="fas fa-plus-circle"></i> Create Group
+                </button>
+            </div>
+        </div>
+        
+        <!-- SETTINGS MODAL -->
+        <div class="modal settings-modal" id="settingsModal">
+            <div class="modal-header settings-header">
+                <div class="settings-header-content">
+                    <i class="fas fa-cog"></i>
+                    <h2>Settings</h2>
+                </div>
+                <button class="close-btn" onclick="closeModal(null, 'settingsModal')">&times;</button>
+            </div>
+            <div class="modal-body settings-body">
+                <div class="settings-section">
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <i class="fas fa-palette"></i>
+                            <h3>Appearance</h3>
+                        </div>
+                        <div class="settings-card-body">
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <span>Theme</span>
+                                    <small>Choose your color scheme</small>
+                                </div>
+                                <select id="themeSelect">
+                                    <option value="mocha">Catppuccin Mocha</option>
+                                    <option value="latte">Catppuccin Latte</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <i class="fas fa-database"></i>
+                            <h3>Database</h3>
+                        </div>
+                        <div class="settings-card-body">
+                            <div class="db-stats-grid">
+                                <div class="db-stat-item">
+                                    <i class="fas fa-comments"></i>
+                                    <span class="db-num" id="dbChats">0</span>
+                                    <span class="db-label">Chats</span>
+                                </div>
+                                <div class="db-stat-item">
+                                    <i class="fas fa-book"></i>
+                                    <span class="db-num" id="dbBlogs">0</span>
+                                    <span class="db-label">Blogs</span>
+                                </div>
+                                <div class="db-stat-item">
+                                    <i class="fas fa-envelope"></i>
+                                    <span class="db-num" id="dbMessages">0</span>
+                                    <span class="db-label">Messages</span>
+                                </div>
+                            </div>
+                            <button class="btn btn-secondary btn-full" onclick="exportData()">
+                                <i class="fas fa-download"></i> Export Data
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-card">
+                        <div class="settings-card-header">
+                            <i class="fas fa-link"></i>
+                            <h3>Connection</h3>
+                        </div>
+                        <div class="settings-card-body">
+                            <div class="api-key-section">
+                                <span>API Key</span>
+                                <div class="api-key-display">
+                                    <code id="settingsApiKey">whiskerchat_secret_2024</code>
+                                    <div class="api-key-actions">
+                                        <button class="icon-btn small" onclick="toggleApiKey()">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="icon-btn small" onclick="copyKey()">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-card danger-card">
+                        <div class="settings-card-header">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h3>Danger Zone</h3>
+                        </div>
+                        <div class="settings-card-body">
+                            <button class="btn btn-danger btn-full" onclick="clearAllData()">
+                                <i class="fas fa-trash"></i> Clear All Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary btn-full" onclick="closeModal(null, 'settingsModal')">
+                    <i class="fas fa-check"></i> Done
+                </button>
+            </div>
+        </div>
+        
+        <!-- BLOG MODAL -->
+        <div class="modal blog-modal" id="blogModal">
+            <div class="modal-header blog-header-modal">
+                <div class="blog-header-content">
+                    <i class="fas fa-feather-alt"></i>
+                    <h2>Create Blog Post</h2>
+                </div>
+                <button class="close-btn" onclick="closeModal(null, 'blogModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="blog-cover-upload" id="blogCoverPreview" onclick="document.getElementById('blogImage').click()">
+                    <img src="" alt="" id="coverImagePreview">
+                    <div class="blog-cover-placeholder">
+                        <i class="fas fa-image"></i>
+                        <span>Click to add cover image</span>
+                    </div>
+                    <button class="remove-cover" onclick="event.stopPropagation(); removeBlogCover()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <input type="file" id="blogImage" accept="image/*" hidden onchange="previewBlogCover(event)">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-heading"></i> Title</label>
+                    <input type="text" id="blogTitle" placeholder="Your amazing title...">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-pen"></i> Content</label>
+                    <textarea id="blogContent" placeholder="Share your thoughts..." rows="5"></textarea>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-tags"></i> Tags</label>
+                    <input type="text" id="blogTags" placeholder="lifestyle, cats, fun">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal(null, 'blogModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="createBlog()">
+                    <i class="fas fa-paper-plane"></i> Publish
+                </button>
+            </div>
+        </div>
+        
+        <!-- CLEAR CHAT MODAL -->
+        <div class="modal" id="clearChatModal">
+            <div class="modal-header">
+                <h2>Clear Chat</h2>
+                <button class="close-btn" onclick="closeModal(null, 'clearChatModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to clear all messages in this chat? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal(null, 'clearChatModal')">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmClearChat()">Clear</button>
+            </div>
+        </div>
+        
+        <!-- SETUP MODAL -->
+        <div class="modal setup-modal" id="setupModal">
+            <div class="setup-bg-pattern"></div>
+            <div class="setup-content">
+                <div class="setup-icon">
+                    <i class="fas fa-cat"></i>
+                </div>
+                <h2>Welcome to Whisker!</h2>
+                <p>Enter your connection key to get started</p>
+                <div class="form-group">
+                    <div class="input-with-icon">
+                        <i class="fas fa-key"></i>
+                        <input type="text" id="setupKey" placeholder="YOUR-KEY-XXXX">
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-full" onclick="setupConnection()">
+                    <i class="fas fa-rocket"></i> Get Started
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- FAB -->
+    <button class="fab" id="fab" onclick="handleFabClick()">
+        <i class="fas fa-plus"></i>
+    </button>
+    
+    <!-- Toast -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
