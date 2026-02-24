@@ -51,6 +51,9 @@ Then open http://localhost:3000 in your browser.
 
 Edit `.env` file to customize:
 
+- if you dont want to share your .env create a entry for it in .gitignore file
+  - this is only a example for .env file for setup
+
 ```env
 CONNECTION_KEY=whisker_secret_2024
 API_GATEWAY=https://api.whiskerchat.local

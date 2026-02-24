@@ -1,13 +1,21 @@
 {
-  "name": "messaging-app",
+  "name": "whisker-chat",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun run server.js",
-    "start": "bun run server.js",
-    "build": "echo 'Build complete - static files served directly'"
+    "dev": "bun run --hot server.ts",
+    "start": "bun run server.ts",
+    "build": "bun build ./src/index.tsx --outdir ./dist --target browser"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "sql.js": "^1.8.0"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0"
   }
 }
