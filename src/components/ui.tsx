@@ -75,9 +75,19 @@ interface AvatarProps {
 }
 
 export function Avatar({ src, alt = '', size = 'md', online, onClick }: AvatarProps) {
+  const [imgError, setImgError] = React.useState(false);
+  
+  const fallbackSrc = `https://api.dicebear.com/7.x/catppuccin/svg?seed=${alt || 'default'}`;
+  const displaySrc = !src || imgError ? fallbackSrc : src;
+  
   return (
     <div className={`avatar-wrapper ${onClick ? 'clickable' : ''}`} onClick={onClick}>
-      <img src={src} alt={alt} className={`avatar avatar-${size}`} />
+      <img 
+        src={displaySrc} 
+        alt={alt} 
+        className={`avatar avatar-${size}`}
+        onError={() => setImgError(true)}
+      />
       {online !== undefined && <span className={`online-indicator ${online ? 'online' : 'offline'}`} />}
     </div>
   );

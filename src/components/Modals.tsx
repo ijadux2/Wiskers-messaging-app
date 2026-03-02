@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Modal, Button, Avatar, Input, TextArea } from './ui';
 import { copyToClipboard } from '../utils/helpers';
@@ -8,6 +8,26 @@ export function ProfileModal() {
   const [name, setName] = useState(currentUser?.name || '');
   const [bio, setBio] = useState(currentUser?.bio || '');
   const [avatar, setAvatar] = useState(currentUser?.avatar || '');
+  const [hasChanges, setHasChanges] = useState(false);
+
+  useEffect(() => {
+    if (activeModal === 'profile') {
+      setName(currentUser?.name || '');
+      setBio(currentUser?.bio || '');
+      setAvatar(currentUser?.avatar || '');
+      setHasChanges(false);
+    }
+  }, [activeModal, currentUser]);
+
+  useEffect(() => {
+    if (activeModal === 'profile') {
+      const changed = 
+        name !== (currentUser?.name || '') ||
+        bio !== (currentUser?.bio || '') ||
+        avatar !== (currentUser?.avatar || '');
+      setHasChanges(changed);
+    }
+  }, [name, bio, avatar, activeModal, currentUser]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -27,6 +47,17 @@ export function ProfileModal() {
     }
     updateProfile(name, bio, avatar);
     showToast('Profile updated!', 'success');
+    closeModal();
+  };
+
+  const handleCancel = () => {
+    if (hasChanges) {
+      if (confirm('You have unsaved changes. Discard them?')) {
+        closeModal();
+      }
+    } else {
+      closeModal();
+    }
   };
 
   const handleCopyKey = async () => {
@@ -36,12 +67,12 @@ export function ProfileModal() {
   };
 
   return (
-    <Modal isOpen={activeModal === 'profile'} onClose={closeModal}>
+    <Modal isOpen={activeModal === 'profile'} onClose={handleCancel}>
       <div className="profile-modal-content">
         <div className="profile-cover">
           <i className="fas fa-cat" />
         </div>
-        <button className="close-btn" onClick={closeModal}>&times;</button>
+        <button className="close-btn" onClick={handleCancel}>&times;</button>
         
         <div className="profile-body">
           <div className="profile-avatar-section">
@@ -52,8 +83,8 @@ export function ProfileModal() {
                 <input type="file" accept="image/*" onChange={handleAvatarChange} hidden />
               </label>
             </div>
-            <h2 className="profile-name">{currentUser?.name}</h2>
-            <p className="profile-bio">{currentUser?.bio || 'No bio yet'}</p>
+            <h2 className="profile-name">{name || currentUser?.name}</h2>
+            <p className="profile-bio">{bio || currentUser?.bio || 'No bio yet'}</p>
           </div>
 
           <div className="profile-form">
@@ -82,8 +113,8 @@ export function ProfileModal() {
         </div>
 
         <div className="modal-footer">
-          <Button variant="secondary" onClick={closeModal}>Cancel</Button>
-          <Button onClick={handleSave}><i className="fas fa-save" /> Save</Button>
+          <Button variant="secondary" onClick={handleCancel}>Cancel</Button>
+          <Button onClick={handleSave} disabled={!hasChanges}><i className="fas fa-save" /> Save</Button>
         </div>
       </div>
     </Modal>
@@ -332,9 +363,14 @@ export function BlogModal() {
   );
 }
 
-export function SettingsModal() {
-  const { activeModal, closeModal, chats, blogs, messages, clearAllData, exportData, connectionKey } = useApp();
+import React, { useState, useEffect } from 'react';
+import { useApp } from '../context/AppContext';
+import { Modal, Button, Avatar, Input, TextArea } from './ui';
+import { copyToClipboard } from '../utils/helpers';
 
+export function SettingsModal() {
+  const { activeModal, closeModal, chats, blogs, messages, clearAllData, exportData, connectionKey, theme, setTheme, themes } = useApp();
+  const [activeTab, setActiveTab] = useState<'appearance' | 'data' | 'connection' | 'danger'>('appearance');
   const totalMessages = Object.values(messages).flat().length;
 
   return (
@@ -348,13 +384,52 @@ export function SettingsModal() {
           <button className="close-btn" onClick={closeModal}>&times;</button>
         </div>
 
+        <div className="settings-tabs">
+          <button className={`settings-tab ${activeTab === 'appearance' ? 'active' : ''}`} onClick={() => setActiveTab('appearance')}>
+            <i className="fas fa-palette" /> Appearance
+          </button>
+          <button className={`settings-tab ${activeTab === 'data' ? 'active' : ''}`} onClick={() => setActiveTab('data')}>
+            <i className="fas fa-database" /> Data
+          </button>
+          <button className={`settings-tab ${activeTab === 'connection' ? 'active' : ''}`} onClick={() => setActiveTab('connection')}>
+            <i className="fas fa-link" /> Connection
+          </button>
+          <button className={`settings-tab ${activeTab === 'danger' ? 'active' : ''}`} onClick={() => setActiveTab('danger')}>
+            <i className="fas fa-exclamation-triangle" /> Danger
+          </button>
+        </div>
+
         <div className="settings-body">
-          <div className="settings-card">
-            <div className="settings-card-header">
-              <i className="fas fa-database" />
-              <h3>Database</h3>
+          {activeTab === 'appearance' && (
+            <div className="settings-section">
+              <h3><i className="fas fa-palette" /> Theme</h3>
+              <p className="settings-description">Choose a color theme for your app</p>
+              <div className="theme-grid">
+                {themes.map((t) => (
+                  <button
+                    key={t.name}
+                    className={`theme-card ${theme.name === t.name ? 'active' : ''}`}
+                    onClick={() => setTheme(t)}
+                  >
+                    <div className="theme-preview">
+                      <div className="theme-colors">
+                        <div className="theme-color" style={{ background: t.background }} />
+                        <div className="theme-color" style={{ background: t.surface }} />
+                        <div className="theme-color accent" style={{ background: t.accent }} />
+                      </div>
+                    </div>
+                    <span className="theme-name">{t.name}</span>
+                    {theme.name === t.name && <i className="fas fa-check-circle theme-check" />}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="settings-card-body">
+          )}
+
+          {activeTab === 'data' && (
+            <div className="settings-section">
+              <h3><i className="fas fa-database" /> Database</h3>
+              <p className="settings-description">Manage your app data</p>
               <div className="db-stats-grid">
                 <div className="db-stat-item">
                   <i className="fas fa-comments" />
@@ -372,38 +447,39 @@ export function SettingsModal() {
                   <span className="db-label">Messages</span>
                 </div>
               </div>
-              <Button fullWidth onClick={exportData}>
+              <Button fullWidth onClick={exportData} style={{ marginTop: '16px' }}>
                 <i className="fas fa-download" /> Export Data
               </Button>
             </div>
-          </div>
+          )}
 
-          <div className="settings-card">
-            <div className="settings-card-header">
-              <i className="fas fa-link" />
-              <h3>Connection</h3>
-            </div>
-            <div className="settings-card-body">
+          {activeTab === 'connection' && (
+            <div className="settings-section">
+              <h3><i className="fas fa-link" /> Connection</h3>
+              <p className="settings-description">Your unique connection details</p>
               <div className="api-key-section">
-                <span>API Key</span>
+                <span>Your Connection Key</span>
                 <div className="api-key-display">
                   <code>{connectionKey}</code>
+                  <Button onClick={() => copyToClipboard(connectionKey || '')}>
+                    <i className="fas fa-copy" />
+                  </Button>
                 </div>
+                <p className="settings-hint">Share this key with others so they can add you as a contact</p>
               </div>
             </div>
-          </div>
+          )}
 
-          <div className="settings-card danger-card">
-            <div className="settings-card-header">
-              <i className="fas fa-exclamation-triangle" />
-              <h3>Danger Zone</h3>
-            </div>
-            <div className="settings-card-body">
+          {activeTab === 'danger' && (
+            <div className="settings-section danger-section">
+              <h3><i className="fas fa-exclamation-triangle" /> Danger Zone</h3>
+              <p className="settings-description">Irreversible actions - proceed with caution</p>
               <Button variant="danger" fullWidth onClick={clearAllData}>
                 <i className="fas fa-trash" /> Clear All Data
               </Button>
+              <p className="settings-hint warning">This will delete all your chats, blogs, contacts, and settings. This action cannot be undone.</p>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="modal-footer">
@@ -473,6 +549,175 @@ export function SetupModal() {
         <Button fullWidth onClick={handleSetup}>
           <i className="fas fa-rocket" /> Get Started
         </Button>
+      </div>
+    </Modal>
+  );
+}
+
+export function AddContactModal() {
+  const { activeModal, closeModal, addContact, showToast } = useApp();
+  const [key, setKey] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleAdd = async () => {
+    if (!key.trim()) {
+      showToast('Please enter a connection key', 'error');
+      return;
+    }
+    setLoading(true);
+    setTimeout(() => {
+      addContact(key);
+      setLoading(false);
+      setKey('');
+      showToast('Contact added successfully!', 'success');
+    }, 500);
+  };
+
+  return (
+    <Modal isOpen={activeModal === 'addContact'} onClose={closeModal}>
+      <div className="chat-modal-content">
+        <div className="chat-header-icon">
+          <i className="fas fa-user-plus" />
+        </div>
+        <h2>Add Contact</h2>
+        <button className="close-btn" onClick={closeModal}>&times;</button>
+        
+        <div className="modal-body">
+          <div className="input-group">
+            <label>Enter Connection Key</label>
+            <div className="input-with-icon">
+              <i className="fas fa-key" />
+              <input 
+                type="text" 
+                value={key}
+                onChange={(e) => setKey(e.target.value.toUpperCase())}
+                placeholder="WHISK-XXXX-XXXX"
+              />
+            </div>
+            <small style={{color: 'var(--subtext)', marginTop: '8px', display: 'block'}}>
+              Ask your friend for their connection key
+            </small>
+          </div>
+        </div>
+
+        <div className="modal-footer">
+          <Button variant="secondary" onClick={closeModal}>Cancel</Button>
+          <Button onClick={handleAdd} disabled={loading}>
+            {loading ? <i className="fas fa-spinner fa-spin" /> : <><i className="fas fa-user-plus" /> Add</>}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+export function BlogDetailModal() {
+  const { activeModal, closeModal, selectedBlog, likeBlog, bookmarkBlog, addComment, currentUser, showToast } = useApp();
+  const [comment, setComment] = useState('');
+  const [showComments, setShowComments] = useState(false);
+
+  if (!selectedBlog) return null;
+
+  const handleLike = () => {
+    likeBlog(selectedBlog.id);
+  };
+
+  const handleBookmark = () => {
+    bookmarkBlog(selectedBlog.id);
+    showToast(selectedBlog.bookmarked ? 'Removed from bookmarks' : 'Added to bookmarks', 'success');
+  };
+
+  const handleComment = () => {
+    if (!comment.trim()) return;
+    addComment(selectedBlog.id, comment);
+    setComment('');
+    showToast('Comment added!', 'success');
+  };
+
+  return (
+    <Modal isOpen={activeModal === 'viewBlog'} onClose={closeModal} size="lg">
+      <div className="blog-detail-modal">
+        <div className="blog-detail-cover">
+          <img src={selectedBlog.image} alt={selectedBlog.title} />
+          <button className="close-btn" onClick={closeModal}>&times;</button>
+        </div>
+        
+        <div className="blog-detail-content">
+          <div className="blog-detail-header">
+            <div className="blog-detail-author">
+              <Avatar src={selectedBlog.authorAvatar} alt={selectedBlog.authorName} size="md" />
+              <div>
+                <span className="author-name">{selectedBlog.authorName}</span>
+                <span className="post-date">{new Date(selectedBlog.createdAt).toLocaleDateString()}</span>
+              </div>
+            </div>
+            <div className="blog-detail-tags">
+              {selectedBlog.tags.map(tag => (
+                <span key={tag} className="tag">#{tag}</span>
+              ))}
+            </div>
+          </div>
+
+          <h1 className="blog-detail-title">{selectedBlog.title}</h1>
+          
+          <div className="blog-detail-body">
+            {selectedBlog.content}
+          </div>
+
+          <div className="blog-detail-actions">
+            <button className={`action-btn ${selectedBlog.liked ? 'active' : ''}`} onClick={handleLike}>
+              <i className={`fas fa-heart ${selectedBlog.liked ? 'liked' : ''}`} />
+              {selectedBlog.likes}
+            </button>
+            <button className={`action-btn ${selectedBlog.bookmarked ? 'active' : ''}`} onClick={handleBookmark}>
+              <i className={`fas fa-bookmark ${selectedBlog.bookmarked ? 'bookmarked' : ''}`} />
+              Save
+            </button>
+            <button className="action-btn" onClick={() => setShowComments(!showComments)}>
+              <i className="fas fa-comment" />
+              {selectedBlog.comments} Comments
+            </button>
+            <button className="action-btn" onClick={() => navigator.share?.({ title: selectedBlog.title, url: window.location.href }) || showToast('Share link copied!', 'info')}>
+              <i className="fas fa-share" />
+              Share
+            </button>
+          </div>
+
+          {showComments && (
+            <div className="blog-comments-section">
+              <h3>Comments ({selectedBlog.comments})</h3>
+              
+              {currentUser && (
+                <div className="comment-input">
+                  <Avatar src={currentUser.avatar} alt={currentUser.name} size="sm" />
+                  <div className="comment-input-field">
+                    <input 
+                      type="text" 
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      placeholder="Write a comment..."
+                      onKeyPress={(e) => e.key === 'Enter' && handleComment()}
+                    />
+                    <button onClick={handleComment} disabled={!comment.trim()}>
+                      <i className="fas fa-paper-plane" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="comments-list">
+                <div className="comment">
+                  <Avatar src="https://api.dicebear.com/7.x/catppuccin/svg?seed=whiskers123" alt="Whiskers" size="sm" />
+                  <div className="comment-content">
+                    <span className="comment-author">Whiskers</span>
+                    <p>Great post! 👍</p>
+                    <span className="comment-time">2 hours ago</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </Modal>
   );

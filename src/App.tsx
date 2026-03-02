@@ -3,6 +3,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import { Sidebar } from './components/Sidebar';
 import { ChatView } from './components/ChatView';
 import { BlogView } from './components/BlogView';
+import { ContactsView } from './components/ContactsView';
 import { RightPanel } from './components/RightPanel';
 import {
   ProfileModal,
@@ -11,7 +12,9 @@ import {
   BlogModal,
   SettingsModal,
   ClearChatModal,
-  SetupModal
+  SetupModal,
+  AddContactModal,
+  BlogDetailModal
 } from './components/Modals';
 import './styles/main.css';
 import './styles/components.css';
@@ -35,7 +38,9 @@ function AppContent() {
       <MobileHeader onMenuClick={toggleSidebar} onProfileClick={() => openModal('profile')} />
       <Sidebar />
       <main className="main-content">
-        {activeTab === 'blogs' ? <BlogView /> : <ChatView />}
+        {activeTab === 'blogs' && <BlogView />}
+        {activeTab === 'contacts' && <ContactsView />}
+        {(activeTab === 'chats' || activeTab === 'groups') && <ChatView />}
       </main>
       <RightPanel />
 
@@ -73,6 +78,8 @@ function Modals() {
       <SettingsModal />
       <ClearChatModal />
       <SetupModal />
+      <AddContactModal />
+      <BlogDetailModal />
     </div>
   );
 }
@@ -83,6 +90,10 @@ function FAB() {
   const handleClick = () => {
     if (activeTab === 'blogs') {
       openModal('blog');
+    } else if (activeTab === 'contacts') {
+      openModal('addContact');
+    } else if (activeTab === 'groups') {
+      openModal('createGroup');
     } else {
       openModal('newChat');
     }

@@ -4,9 +4,10 @@ import { Avatar, IconButton } from './ui';
 import { formatTime } from '../utils/helpers';
 
 export function ChatView() {
-  const { activeChat, messages, sendMessage, toggleRightPanel, showToast } = useApp();
+  const { activeChat, messages, sendMessage, toggleRightPanel, showToast, currentUser, setSelectedBlog, openModal } = useApp();
   const [inputValue, setInputValue] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const chatMessages = activeChat ? messages[activeChat.id] || [] : [];
@@ -46,7 +47,14 @@ export function ChatView() {
     setShowEmoji(false);
   };
 
-  const emojis = ['😺', '😸', '😹', '😻', '👍', '❤️', '🎉', '🔥', '✨', '💜', '😂', '🥰'];
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      showToast('Image upload coming soon!', 'info');
+    }
+  };
+
+  const emojis = ['😺', '😸', '😹', '😻', '👍', '❤️', '🎉', '🔥', '✨', '💜', '😂', '🥰', '😢', '🤔', '😴', '🥳'];
 
   return (
     <div className="chat-view">
@@ -54,13 +62,26 @@ export function ChatView() {
         <div className="chat-header-info">
           <Avatar src={activeChat.avatar} alt={activeChat.name} online={activeChat.online} />
           <div className="chat-user-info">
-            <span className="chat-name">{activeChat.name}</span>
-            <span className="chat-status">{activeChat.online ? 'Online' : 'Offline'}</span>
+            <span className="chat-name">
+              {activeChat.type === 'group' && <i className="fas fa-users" />}
+              {activeChat.name}
+            </span>
+            <span className="chat-status">
+              {activeChat.type === 'group' 
+                ? `${activeChat.members?.length || 0} members`
+                : (activeChat.online ? 'Online' : 'Offline')
+              }
+            </span>
           </div>
         </div>
         <div className="chat-actions">
-          <IconButton onClick={toggleRightPanel}>
-            <i className="fas fa-info-circle" />
+          {activeChat.type === 'group' && (
+            <IconButton title="Group Info">
+              <i className="fas fa-info-circle" />
+            </IconButton>
+          )}
+          <IconButton onClick={toggleRightPanel} title="Chat Info">
+            <i className="fas fa-ellipsis-v" />
           </IconButton>
         </div>
       </div>
@@ -74,15 +95,25 @@ export function ChatView() {
             </div>
           ) : (
             chatMessages.map((msg, idx) => (
-              <MessageBubble key={msg.id} message={msg} showAvatar={idx === 0 || chatMessages[idx - 1]?.senderId !== msg.senderId} />
+              <MessageBubble 
+                key={msg.id} 
+                message={msg} 
+                showAvatar={idx === 0 || chatMessages[idx - 1]?.senderId !== msg.senderId}
+                isGroup={activeChat.type === 'group'}
+              />
             ))
+          )}
+          {isTyping && (
+            <div className="typing-indicator">
+              <span></span><span></span><span></span>
+            </div>
           )}
           <div ref={messagesEndRef} />
         </div>
       </div>
 
       <div className="message-input-area">
-        <IconButton onClick={() => setShowEmoji(!showEmoji)}>
+        <IconButton onClick={() => setShowEmoji(!showEmoji)} title="Emoji">
           <i className="fas fa-smile" />
         </IconButton>
         
@@ -94,9 +125,10 @@ export function ChatView() {
           </div>
         )}
         
-        <IconButton onClick={() => showToast('File upload coming soon!', 'info')}>
+        <label className="icon-btn" title="Attach File">
           <i className="fas fa-paperclip" />
-        </IconButton>
+          <input type="file" accept="image/*" onChange={handleImageUpload} hidden />
+        </label>
         
         <input 
           type="text" 
@@ -115,19 +147,44 @@ export function ChatView() {
   );
 }
 
-function MessageBubble({ message, showAvatar }: { message: any; showAvatar: boolean }) {
+function MessageBubble({ message, showAvatar, isGroup }: { message: any; showAvatar: boolean; isGroup?: boolean }) {
+  const { reactToMessage } = useApp();
+  const [showActions, setShowActions] = useState(false);
+
+  const reactionEmojis = ['👍', '❤️', '😂', '😢', '😮', '🎉'];
+
   return (
-    <div className={`message ${message.sent ? 'sent' : 'received'}`}>
-      {showAvatar && !message.sent && (
-        <Avatar src={`https://api.dicebear.com/7.x/catppuccin/svg?seed=${message.senderId}`} size="sm" />
+    <div 
+      className={`message ${message.sent ? 'sent' : 'received'}`}
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => setShowActions(false)}
+    >
+      {showAvatar && !message.sent && isGroup && (
+        <Avatar src={message.senderAvatar || `https://api.dicebear.com/7.x/catppuccin/svg?seed=${message.senderId}`} size="sm" />
       )}
       <div className="message-bubble">
+        {isGroup && !message.sent && showAvatar && (
+          <span className="sender-name">{message.senderName}</span>
+        )}
         <span className="text">{message.text}</span>
-        <span className="time">{formatTime(message.timestamp)}</span>
-        {message.sent && (
-          <span className="status">
-            <i className={`fas fa-check${message.status === 'read' ? '-double' : ''}`} />
-          </span>
+        <div className="message-meta">
+          <span className="time">{formatTime(message.timestamp)}</span>
+          {message.sent && (
+            <span className="status">
+              <i className={`fas fa-${message.status === 'read' ? 'check-double' : message.status === 'delivered' ? 'check' : 'clock'}`} 
+                className={message.status === 'read' ? 'read' : ''}
+              />
+            </span>
+          )}
+        </div>
+        
+        {showActions && (
+          <div className="message-actions">
+            {reactionEmojis.map(emoji => (
+              <button key={emoji} onClick={() => reactToMessage(message.id, emoji)}>{emoji}</button>
+            ))}
+            <button><i className="fas fa-reply" /></button>
+          </div>
         )}
       </div>
     </div>
